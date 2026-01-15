@@ -9,6 +9,7 @@ RUN npm install -g n8n@latest
 RUN apk add --no-cache \
     python3 \
     py3-pip \
+    py3-virtualenv \
     build-base \
     python3-dev \
     libffi-dev \
@@ -16,19 +17,29 @@ RUN apk add --no-cache \
     pango-dev \
     wget
 
-# Install pymupdf4llm
-RUN pip3 install --break-system-packages pymupdf4llm
-
-# Create node user (if not exists)
+# Create node user early
 RUN addgroup -g 1000 node 2>/dev/null || true
 RUN adduser -u 1000 -G node -s /bin/sh -D node 2>/dev/null || true
 
-# Set proper permissions
-RUN mkdir -p /home/node/.n8n && chown -R node:node /home/node
+# Create .n8n directory (will be mounted by Coolify)
+RUN mkdir -p /home/node/.n8n
+
+# Create Python venv OUTSIDE of .n8n (so it's not overwritten by volume)
+RUN python3 -m venv /opt/n8n-python-env
+
+# Install pymupdf4llm in the venv
+RUN /opt/n8n-python-env/bin/pip install --upgrade pip
+RUN /opt/n8n-python-env/bin/pip install pymupdf4llm
+
+# Fix permissions
+RUN chown -R node:node /home/node
+RUN chown -R node:node /opt/n8n-python-env
 
 USER node
 
 ENV N8N_USER_FOLDER=/home/node/.n8n
+ENV N8N_RUNNERS_MODE=internal
+ENV N8N_PYTHON_BINARY=/opt/n8n-python-env/bin/python
 
 EXPOSE 5678
 
