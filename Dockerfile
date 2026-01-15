@@ -20,5 +20,3 @@ USER node
 # Healthcheck identique à l'image officielle
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
   CMD wget --quiet --tries=1 --spider http://localhost:5678/healthz || exit 1
-```
-
